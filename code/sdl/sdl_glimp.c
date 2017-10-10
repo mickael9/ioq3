@@ -63,6 +63,13 @@ void (APIENTRYP qglMultiTexCoord2fARB) (GLenum target, GLfloat s, GLfloat t);
 void (APIENTRYP qglLockArraysEXT) (GLint first, GLsizei count);
 void (APIENTRYP qglUnlockArraysEXT) (void);
 
+#define GLE(ret, name, ...) name##proc * qgl##name;
+QGL_1_1_PROCS;
+QGL_DESKTOP_1_1_PROCS;
+QGL_ES_1_1_PROCS;
+QGL_3_0_PROCS;
+#undef GLE
+
 #ifdef USE_ALTGAMMA
 void GLimp_InitGamma(void);
 void GLimp_ShutdownGamma(void);
