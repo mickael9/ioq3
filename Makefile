@@ -1125,11 +1125,18 @@ $(echo_cmd) "REF_CC $<"
 $(Q)$(CC) $(SHLIBCFLAGS) $(CFLAGS) $(CLIENT_CFLAGS) $(OPTIMIZE) -o $@ -c $<
 endef
 
+ifeq ($(PLATFORM),mingw32)
+GLSL_SED_ARGS=-e 's/^/\"/;s/$$/\\n\"/' -e 's/\r//g'
+else
+GLSL_SED_ARGS='s/^/\"/;s/$$/\\n\"/'
+endif
+
 define DO_REF_STR
 $(echo_cmd) "REF_STR $<"
 $(Q)rm -f $@
 $(Q)echo "const char *fallbackShader_$(notdir $(basename $<)) =" >> $@
-$(Q)cat $< | sed -e 's/^/\"/;s/$$/\\n\"/' -e 's/\r//g' >> $@
+$(Q)cat $< | sed $(GLSL_SED_ARGS) >> $@
+
 $(Q)echo ";" >> $@
 endef
 
