@@ -49,15 +49,7 @@ typedef struct voipServerPacket_s
 #endif
 
 #ifdef USE_SKEETMOD
-#define SKEET_MAX               64              // Max amount of skeets that will be animated in skeed mode
-#define SKEET_MIN_SPAWN_TIME    1000            // Min amount of milliseconds a skeet will remain at spawn point
-#define SKEET_MAX_SPAWN_TIME    4000            // Max amount of milliseconds a skeet will remain at spawn point
-#define SKEET_MIN_X             (-M_PI / 2.5f)
-#define SKEET_MAX_X             (M_PI / 2.5f)
-#define SKEET_MIN_Y             (M_PI / 3.0f)
-#define SKEET_MAX_Y             (M_PI / 2.0f)
-#define SKEET_MAX_TRACE         18000
-#define SKEET_MAX_RAND	 		0x7fffffff
+#define MAX_SKEETS      64     // Max amount of skeets that will be animated in skeed mode
 
 typedef struct skeetInfo_s {
 	qboolean 	valid;        	// qtrue if this entity is a skeet
@@ -104,7 +96,7 @@ typedef struct {
 	svEntity_t		svEntities[MAX_GENTITIES];
 
 #ifdef USE_SKEETMOD
-	svEntity_t      *skeets[SKEET_MAX];
+	svEntity_t      *skeets[MAX_SKEETS];
 #endif
 
 	char			*entityParsePoint;	// used during game VM init
@@ -410,6 +402,18 @@ void SV_RemoveOperatorCommands (void);
 
 void SV_MasterShutdown (void);
 int SV_RateMsec(client_t *client);
+
+
+//
+// sv_utils.c
+//
+void  QDECL SV_LogPrintf(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
+void  SV_SendScoreboardSingleMessageToAllClients(client_t *cl, playerState_t *ps);
+void  SV_SendSoundToClient(client_t *cl, const char *name);
+int   SV_UnitsToMeters(float distance);
+int   SV_XORShiftRand(void);
+float SV_XORShiftRandRange(float min, float max);
+void  SV_XORShiftRandSeed(unsigned int seed);
 
 
 //

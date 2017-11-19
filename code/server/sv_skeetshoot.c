@@ -19,21 +19,25 @@
 #include "server.h"
 
 
-#define SKEET_CLASSHASH   284875700
-#define SKEET_MAX_OFFSET        128
-#define STAT_PMOVE                8
-#define STAT_AMOVE               13
-#define EVT_FIRE_WEAPON          31
-#define EVT_GENERAL_SOUND        59
+#define SKEET_CLASSHASH       284875700
+#define SKEET_MAX_OFFSET            128
+#define SKEET_MAX_TRACE           18000
+#define SKEET_MIN_X      (-M_PI / 2.5f)
+#define SKEET_MAX_X       (M_PI / 2.5f)
+#define SKEET_MIN_Y       (M_PI / 3.0f)
+#define SKEET_MAX_Y       (M_PI / 2.0f)
+#define SKEET_MIN_SPAWN_TIME       1000
+#define SKEET_MAX_SPAWN_TIME       4000
+#define STAT_PMOVE                    8
+#define STAT_AMOVE                   13
+#define EVT_FIRE_WEAPON              31
 
 
-static void  QDECL SV_LogPrintf(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
-static void  SV_SendSoundToClient(playerState_t *ps, const char *name);
-static int   SV_SkeetHashOffsetFinder(unsigned int base);
-static int   SV_SkeetLaunchTime(void);
-static int   SV_SkeetRand(void);
-static void  SV_SkeetRandSeed(unsigned int seed);
-static int   SV_UnitsToMeters(float distance);
+static int  SV_SkeetHashOffsetFinder(unsigned int base);
+static void SV_SkeetHitReport(client_t *cl, float distance, int points);
+static void SV_SkeetLogHit(client_t *cl, playerState_t *ps, float distance, int points);
+static void SV_SkeetLogMiss(client_t *cl);
+static void SV_SkeetPointsNotify(client_t *cl, int points);
 
 
 typedef struct {
@@ -51,12 +55,6 @@ skeetscore_t skeetscores[] = {
 };
 
 
-int mx = 123456789;
-int my = 362436069;
-int mz = 521288629;
-int mw = 886751235;
-
-
 // ====================================================================================
 
 
@@ -70,7 +68,7 @@ void SV_SkeetThink(void) {
 		return;
 	}
 
-	for (i = 0; i < SKEET_MAX; i++) {
+	for (i = 0; i < MAX_SKEETS; i++) {
 
 		if (!(sEnt = sv.skeets[i])) {
 			break;
@@ -91,9 +89,6 @@ void SV_SkeetThink(void) {
 			}
 		} else {
 			if (sv.time > sEnt->skeetInfo.shootTime) {
-				// This will just calculate the direction vector and apply
-				// skeet velocity to it: the skeet entity will start moving
-				// in the world starting from the next server frame.
 				SV_SkeetLaunch(sEnt, gEnt);
 			}
 		}
@@ -118,8 +113,8 @@ void SV_SkeetLaunch(svEntity_t *sEnt, sharedEntity_t *gEnt) {
 		return;
 	}
 
-	vel[0] = SKEET_MIN_X + ((float)SV_SkeetRand() / ((float)SKEET_MAX_RAND / (SKEET_MAX_X - SKEET_MIN_X)));
-	vel[1] = SKEET_MIN_Y + ((float)SV_SkeetRand() / ((float)SKEET_MAX_RAND / (SKEET_MAX_Y - SKEET_MIN_Y)));
+	vel[0] = SV_XORShiftRandRange(SKEET_MIN_X, SKEET_MAX_X);
+	vel[1] = SV_XORShiftRandRange(SKEET_MIN_Y, SKEET_MAX_Y);
 	vel[2] = 1.0f;
 
 	VectorNormalize(vel);
@@ -149,7 +144,7 @@ void SV_SkeetRespawn(svEntity_t *sEnt, sharedEntity_t *gEnt) {
 	SV_UnlinkEntity(gEnt);
 	VectorCopy(sEnt->skeetInfo.origin, gEnt->r.currentOrigin);
 	sEnt->skeetInfo.moving = qfalse;
-	sEnt->skeetInfo.shootTime = sv.time + SV_SkeetLaunchTime();
+	sEnt->skeetInfo.shootTime = sv.time + SV_XORShiftRandRange(SKEET_MIN_SPAWN_TIME, SKEET_MAX_SPAWN_TIME);
 	gEnt->s.pos.trTime = sv.time;
 	gEnt->s.pos.trType = TR_STATIONARY;
 	SV_LinkEntity(gEnt);
@@ -201,9 +196,9 @@ void SV_SkeetInit(void) {
 
 	Com_Printf("SkeetMOD: initializing skeetshoot mod\n");
 
-	SV_SkeetRandSeed((unsigned int) svs.time);
+	SV_XORShiftRandSeed((unsigned int) svs.time);
 
-	for (i = 0, j = 0, sEnt = sv.svEntities; i < MAX_GENTITIES && j < SKEET_MAX; i++, sEnt++) {
+	for (i = 0, j = 0, sEnt = sv.svEntities; i < MAX_GENTITIES && j < MAX_SKEETS; i++, sEnt++) {
 
 		if (!sEnt) {
 			continue;
@@ -219,7 +214,7 @@ void SV_SkeetInit(void) {
 			sv.skeets[j] = sEnt;
 			sv.skeets[j]->skeetInfo.valid = qtrue;
 			sv.skeets[j]->skeetInfo.moving = qfalse;
-			sv.skeets[j]->skeetInfo.shootTime = sv.time + SV_SkeetLaunchTime();
+			sv.skeets[j]->skeetInfo.shootTime = sv.time + SV_XORShiftRandRange(SKEET_MIN_SPAWN_TIME, SKEET_MAX_SPAWN_TIME);
 			VectorCopy(gEnt->r.currentOrigin, sv.skeets[j]->skeetInfo.origin);
 			j++;
 		}
@@ -249,7 +244,7 @@ void SV_SkeetParseGameRconCommand(const char *text) {
 
 	if (!Q_stricmp(Cmd_Argv(0), "restart")) {
 		if (sv_skeetshoot->integer > 0 && sv_gametype->integer == GT_FFA) {
-			for (i = 0; i < SKEET_MAX; i++) {
+			for (i = 0; i < MAX_SKEETS; i++) {
 				if (!(sEnt = sv.skeets[i]))
 					break;
 				gEnt = SV_GEntityForSvEntity(sEnt);
@@ -259,7 +254,6 @@ void SV_SkeetParseGameRconCommand(const char *text) {
 			}
 			SV_SkeetInit();
 		}
-
 	}
 
 }
@@ -280,7 +274,6 @@ void SV_SkeetParseGameServerCommand(int clientNum, const char *text) {
 	if (sscanf(text, "%s %i %i %i %i %i %i %i %i %i %i %i %i %s",      // NOLINT
 			   cmd, &s[0], &s[1], &s[2], &s[3], &s[4], &s[5], &s[6],
 			   &s[7], &s[8], &s[9], &s[10], &s[11], auth) != EOF) {
-
 		if (!Q_stricmp("scoress", cmd) && (Q_stricmp("---", auth) != 0)) {
 			cl = &svs.clients[s[0]];
 			if ((Q_stricmp(cl->auth, auth) != 0)) {
@@ -343,10 +336,8 @@ void SV_SkeetScore(client_t *cl, playerState_t *ps, trace_t *tr) {
 
 	int i;
 	int points = 1;
-	char name[MAX_NAME_LENGTH];
-	char *score;
+
 	float distance = 0;
-	client_t *dst;
 
 	if (sv_skeetshoot->integer <= 0 || sv_gametype->integer != GT_FFA) {
 		return;
@@ -367,40 +358,10 @@ void SV_SkeetScore(client_t *cl, playerState_t *ps, trace_t *tr) {
 
 	ps->persistant[PERS_SCORE] += points;
 
-	if (sv_skeethitreport->integer) {
-		Q_strncpyz(name, cl->name, sizeof(name));
-		Q_CleanStr(name);
-		SV_SendServerCommand(NULL, "print \"%s%s %sscores %s%d %spoints by hitting a skeet at %s%d %smeters\n\"",
-							 S_COLOR_YELLOW, name, S_COLOR_WHITE, S_COLOR_YELLOW, points, S_COLOR_WHITE,
-							 S_COLOR_YELLOW, SV_UnitsToMeters(distance), S_COLOR_WHITE);
-	}
-
-	if (sv_skeetpointsnotify->integer > 0) {
-		SV_SendServerCommand(cl, "cp \"%s+%d\n\"", S_COLOR_GREEN, points);
-	}
-
-	// ------- SCOREBOARD UPDATE ------------
-
-#ifdef USE_AUTH
-	score = va("scoress %i %i %i %i %i %i %i %i %i %i %i %i %s", (int)(cl - svs.clients),
-			   ps->persistant[PERS_SCORE], cl->ping, sv.time / 60000, 0,
-			   ps->persistant[PERS_KILLED], 0, 0, 0, 0, 0, 0, cl->auth);
-#else
-	score = va("scoress %i %i %i %i %i %i %i %i %i %i %i %i ---", (int)(cl - svs.clients),
-			   ps->persistant[PERS_SCORE], cl->ping, sv.time / 60000, 0,
-			   ps->persistant[PERS_KILLED], 0, 0, 0, 0, 0, 0);
-#endif
-
-	for (i = 0, dst = svs.clients; i < sv_maxclients->integer; i++, dst++) {
-		if (dst->state != CS_ACTIVE)
-			continue;
-		SV_SendServerCommand(dst, "%s", score);
-
-	}
-
-	if (Cvar_VariableIntegerValue("g_loghits")) {
-		SV_LogPrintf("SkeetShoot: %i: %f %i %i\n", (int)(cl - svs.clients), distance, points, ps->persistant[PERS_SCORE]);
-	}
+	SV_SkeetHitReport(cl, distance, points);
+	SV_SkeetPointsNotify(cl, points);
+	SV_SendScoreboardSingleMessageToAllClients(cl, ps);
+	SV_SkeetLogHit(cl, ps, distance, points);
 
 }
 
@@ -423,11 +384,8 @@ void SV_SkeetClientEvents(client_t *cl) {
 	for (i = cl->lastEventSequence; i < ps->eventSequence; i++) {
 		event = ps->events[i & (MAX_PS_EVENTS - 1)];
 		if (event == EVT_FIRE_WEAPON) {
-			if (!SV_SkeetShoot(cl, ps)) {
-				if (Cvar_VariableIntegerValue("g_loghits")) {
-					SV_LogPrintf("SkeetMiss: %i\n", (int)(cl - svs.clients));
-				}
-			}
+			if (!SV_SkeetShoot(cl, ps))
+				SV_SkeetLogMiss(cl);
 			SV_SkeetRestorePowerups(cl);
 		}
 	}
@@ -480,7 +438,7 @@ qboolean SV_SkeetShoot(client_t *cl, playerState_t *ps) {
 		return qfalse;
 	}
 
-	SV_SendSoundToClient(ps, sv_skeethitsound->string);  // send the hit sound
+	SV_SendSoundToClient(cl, sv_skeethitsound->string);  // send the hit sound
 	SV_SkeetScore(cl, ps, &trace);                       // increase score
 	SV_SkeetRespawn(sEnt, gEnt);                         // respawn the skeet
 	return qtrue;
@@ -489,89 +447,6 @@ qboolean SV_SkeetShoot(client_t *cl, playerState_t *ps) {
 
 
 // ====================================================================================
-
-static void QDECL SV_LogPrintf(const char *fmt, ...) {
-
-	va_list argptr;
-	fileHandle_t file;
-	fsMode_t mode;
-	char *filename;
-	char buffer[MAX_STRING_CHARS];
-	int min, tens, sec;
-	int logsync;
-
-	filename = Cvar_VariableString("g_log");
-	if (!filename[0]) {
-		return;
-	}
-
-	logsync = Cvar_VariableIntegerValue("g_logSync");
-	mode = logsync ? FS_APPEND_SYNC : FS_APPEND;
-
-	FS_FOpenFileByMode(filename, &file, mode);
-	if (!file) {
-		return;
-	}
-
-	sec  = sv.time / 1000;
-	min  = sec / 60;
-	sec -= min * 60;
-	tens = sec / 10;
-	sec -= tens * 10;
-
-	Com_sprintf(buffer, sizeof(buffer), "%3i:%i%i ", min, tens, sec);
-
-	va_start(argptr, fmt);
-	vsprintf(buffer + 7, fmt, argptr);
-	va_end(argptr);
-
-	FS_Write(buffer, strlen(buffer), file);
-	FS_FCloseFile(file);
-
-}
-
-static void SV_SendSoundToClient(playerState_t *ps, const char *name) {
-
-	int i;
-	int bits;
-	int index = -1;
-	int max = MAX_SOUNDS;
-	int start = CS_SOUNDS;
-	char buffer[MAX_STRING_CHARS];
-
-	if (!name || !name[0]) {
-		// invalid name supplied
-		index = 0;
-	}
-
-	for (i = 1 ; i < max ; i++) {
-		SV_GetConfigstring(start + i, buffer, sizeof(buffer));
-		if (!buffer[0]) {
-			break;
-		}
-		if (!Q_stricmp(buffer, name)) {
-			index = i;
-			break;
-		}
-	}
-
-	if (index == -1) {
-		// if there is no config string for this sound,
-		// create a new one but do not overflow the limits
-		if (i == max) {
-			return;
-		}
-		SV_SetConfigstring(start + i, name);
-		index = i;
-	}
-
-	bits = ps->externalEvent & EV_EVENT_BITS;
-	bits = (bits + EV_EVENT_BIT1) & EV_EVENT_BITS;
-	ps->externalEvent = EVT_GENERAL_SOUND | bits;
-	ps->externalEventParm = index;
-	ps->externalEventTime = sv.time;
-
-}
 
 static int SV_SkeetHashOffsetFinder(unsigned int base) {
 
@@ -609,23 +484,37 @@ static int SV_SkeetHashOffsetFinder(unsigned int base) {
 
 }
 
-static int SV_SkeetLaunchTime(void) {
-	return (SV_SkeetRand() % (SKEET_MAX_SPAWN_TIME - SKEET_MIN_SPAWN_TIME) + SKEET_MIN_SPAWN_TIME);
+static void SV_SkeetHitReport(client_t *cl, float distance, int points) {
+
+	char name[MAX_NAME_LENGTH];
+
+	if (sv_skeethitreport->integer <= 0)
+		return;
+
+	Q_strncpyz(name, cl->name, sizeof(name));
+	Q_CleanStr(name);
+	SV_SendServerCommand(NULL, "print \"%s%s %sscores %s%d %spoints by hitting a skeet at %s%d %smeters\n\"",
+						 S_COLOR_YELLOW, name, S_COLOR_WHITE, S_COLOR_YELLOW, points, S_COLOR_WHITE,
+						 S_COLOR_YELLOW, SV_UnitsToMeters(distance), S_COLOR_WHITE);
+
 }
 
-static void SV_SkeetRandSeed(unsigned int seed) {
-	mw = seed;
+static void SV_SkeetLogHit(client_t *cl, playerState_t *ps, float distance, int points) {
+	if (Cvar_VariableIntegerValue("g_loghits") <= 0)
+		return;
+	SV_LogPrintf("SkeetShoot: %i: %f %i %i\n", (int)(cl - svs.clients), distance, points, ps->persistant[PERS_SCORE]);
 }
 
-static int SV_SkeetRand(void) {
-	int t = (mx ^ (mx << 11)) & SKEET_MAX_RAND;
-	mx = my; my = mz; mz = mw;
-	mw = (mw ^ (mw >> 19) ^ (t ^ (t >> 8)));
-	return mw;
+static void SV_SkeetLogMiss(client_t *cl) {
+	if (Cvar_VariableIntegerValue("g_loghits") <= 0)
+		return;
+	SV_LogPrintf("SkeetMiss: %i\n", (int)(cl - svs.clients));
 }
 
-static int SV_UnitsToMeters(float distance) {
-	return (int)((distance / 8) * 0.3048);
+static void SV_SkeetPointsNotify(client_t *cl, int points) {
+	if (sv_skeetpointsnotify->integer <= 0)
+		return;
+	SV_SendServerCommand(cl, "cp \"%s+%d\n\"", S_COLOR_GREEN, points);
 }
 
 #endif
