@@ -19,18 +19,18 @@
 #include "server.h"
 
 
-#define SKEET_CLASSHASH       284875700
-#define SKEET_MAX_OFFSET            128
-#define SKEET_MAX_TRACE           18000
-#define SKEET_MIN_X      (-M_PI / 2.5f)
-#define SKEET_MAX_X       (M_PI / 2.5f)
-#define SKEET_MIN_Y       (M_PI / 3.0f)
-#define SKEET_MAX_Y       (M_PI / 2.0f)
-#define SKEET_MIN_SPAWN_TIME       1000
-#define SKEET_MAX_SPAWN_TIME       4000
-#define STAT_PMOVE                    8
-#define STAT_AMOVE                   13
-#define EVT_FIRE_WEAPON              31
+#define SKEET_CLASSHASH             284875700
+#define SKEET_MAX_OFFSET                  128
+#define SKEET_MAX_TRACE                 18000
+#define SKEET_MIN_Y             (M_PI / 3.0f)
+#define SKEET_MAX_Y             (M_PI / 2.0f)
+#define SKEET_MIN_SPAWN_TIME             1000
+#define SKEET_MAX_SPAWN_TIME             4000
+#define STAT_PMOVE                          8
+#define STAT_AMOVE                         13
+#define EVT_FIRE_WEAPON                    31
+
+#define DEG_TO_RAD(a)    ((a) * M_PI / 180.0)
 
 
 static int  SV_SkeetHashOffsetFinder(unsigned int base);
@@ -99,7 +99,11 @@ void SV_SkeetThink(void) {
 
 void SV_SkeetLaunch(svEntity_t *sEnt, sharedEntity_t *gEnt) {
 
-	vec3_t vel = {0, 0, 0};
+	float fan;
+	float pitch, yaw;
+
+	vec3_t skeetPos = {0,0,0};
+	vec3_t skeetDir = {0,0,0};
 
 	if (sv_skeetshoot->integer <= 0 || sv_gametype->integer != GT_FFA) {
 		return;
@@ -113,13 +117,15 @@ void SV_SkeetLaunch(svEntity_t *sEnt, sharedEntity_t *gEnt) {
 		return;
 	}
 
-	vel[0] = SV_XORShiftRandRange(SKEET_MIN_X, SKEET_MAX_X);
-	vel[1] = SV_XORShiftRandRange(SKEET_MIN_Y, SKEET_MAX_Y);
-	vel[2] = 1.0f;
-
-	VectorNormalize(vel);
-	VectorMultiply(vel, sv_skeetspeed->integer);
-	VectorCopy(vel, gEnt->s.pos.trDelta);
+	fan = DEG_TO_RAD(Com_Clamp(0, 360, sv_skeetfansize->integer));
+	pitch = SV_XORShiftRandRange(-(fan / 2), (fan / 2));
+	yaw = SV_XORShiftRandRange(pitch > -M_PI_2 && pitch < M_PI_2 ? SKEET_MIN_Y : -SKEET_MAX_Y, pitch > -M_PI_2 && pitch < M_PI_2 ? SKEET_MAX_Y : -SKEET_MIN_Y);
+	VectorSet(skeetDir, pitch, yaw, 1.0f);
+	VectorRotateZ(skeetDir, DEG_TO_RAD(Com_Clamp(-360, +360, sv_skeetrotate->integer)), skeetDir);
+	VectorNormalize(skeetDir);
+	VectorClear(skeetPos);
+	VectorMA(skeetPos, sv_skeetspeed->integer, skeetDir, skeetPos);
+	VectorCopy(skeetPos, gEnt->s.pos.trDelta);
 
 	gEnt->s.pos.trTime = sv.time - 50;
 	gEnt->s.pos.trType = TR_GRAVITY;

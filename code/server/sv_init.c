@@ -947,6 +947,8 @@ void SV_Init (void)
 	sv_skeetpointsnotify = Cvar_Get("sv_skeetpointsnotify", "0", CVAR_ARCHIVE);
 	sv_skeetprotect = Cvar_Get("sv_skeetprotect", "1", CVAR_ARCHIVE);
 	sv_skeetspeed = Cvar_Get("sv_skeetspeed", "2800", CVAR_ARCHIVE);
+	sv_skeetrotate = Cvar_Get("sv_skeetrotate", "0", CVAR_ARCHIVE);
+	sv_skeetfansize = Cvar_Get("sv_skeetfansize", "144", CVAR_ARCHIVE);
 #endif
 
 	// initialize bot cvars so they are listed and can be set before loading the botlib
