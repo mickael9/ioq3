@@ -196,6 +196,7 @@ void SV_SkeetInit(void) {
 
 	Com_Printf("SkeetMOD: initializing skeetshoot mod\n");
 
+	SV_FindConfigstringIndex(sv_skeethitsound->string, CS_SOUNDS, MAX_SOUNDS, qtrue);
 	SV_XORShiftRandSeed((unsigned int) svs.time);
 
 	for (i = 0, j = 0, sEnt = sv.svEntities; i < MAX_GENTITIES && j < MAX_SKEETS; i++, sEnt++) {

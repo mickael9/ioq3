@@ -942,7 +942,7 @@ void SV_Init (void)
 #ifdef USE_SKEETMOD
 	sv_skeetshoot = Cvar_Get("sv_skeetshoot", "0", CVAR_ARCHIVE);
 	sv_skeethitreport = Cvar_Get("sv_skeethitreport", "0", CVAR_ARCHIVE);
-	sv_skeethitsound = Cvar_Get("sv_skeethitsound", "sound/surfaces/bullets/concrete1.wav", CVAR_ARCHIVE);
+	sv_skeethitsound = Cvar_Get("sv_skeethitsound", "sound/skeetshoot/skeethitsound.wav", CVAR_ARCHIVE);
 	sv_skeetpoints = Cvar_Get("sv_skeetpoints", "0", CVAR_ARCHIVE);
 	sv_skeetpointsnotify = Cvar_Get("sv_skeetpointsnotify", "0", CVAR_ARCHIVE);
 	sv_skeetprotect = Cvar_Get("sv_skeetprotect", "1", CVAR_ARCHIVE);
