@@ -407,6 +407,7 @@ int SV_RateMsec(client_t *client);
 //
 // sv_utils.c
 //
+int   SV_FindConfigstringIndex(char *name, int start, int max, qboolean create);
 void  QDECL SV_LogPrintf(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 void  SV_SendScoreboardSingleMessageToAllClients(client_t *cl, playerState_t *ps);
 void  SV_SendSoundToClient(client_t *cl, const char *name);

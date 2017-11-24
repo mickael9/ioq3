@@ -25,9 +25,41 @@ int mz = 521288629;
 int mw = 886751235;
 
 /**
+ * Find the configstring index for the given entry.
+ */
+int SV_FindConfigstringIndex(char *name, int start, int max, qboolean create) {
+
+	int i;
+	char s[MAX_STRING_CHARS];
+
+	if (!name || !name[0]) {
+		return 0;
+	}
+
+	for (i = 1 ;i < max; i++) {
+		SV_GetConfigstring(start + i, s, sizeof(s));
+		if (!s[0])
+			break;
+		if (!strcmp(s, name))
+			return i;
+	}
+
+	if (!create) {
+		return 0;
+	}
+
+	if (i == max) {
+		Com_Printf("SV_FindConfigStringIndex: overflow");
+	}
+
+	SV_SetConfigstring(start + i, name);
+
+	return i;
+
+}
+
+/**
  * Log in the same file as the game module.
- *
- * @author Daniele Pantaleone
  */
 void QDECL SV_LogPrintf(const char *fmt, ...) {
 
@@ -98,8 +130,6 @@ void SV_SendScoreboardSingleMessageToAllClients(client_t *cl, playerState_t *ps)
 
 /**
  * Broadcast a specific sound to the given client.
- *
- * @author Daniele Pantaleone
  */
 void SV_SendSoundToClient(client_t *cl, const char *name) {
 
@@ -146,8 +176,6 @@ void SV_SendSoundToClient(client_t *cl, const char *name) {
 
 /**
  * Approx Quake3Units to Meters conversion.
- *
- * @author Daniele Pantaleone
  */
 int SV_UnitsToMeters(float distance) {
 	return (int)((distance / 8) * 0.3048);
@@ -155,8 +183,6 @@ int SV_UnitsToMeters(float distance) {
 
 /**
  * A better random number generation function.
- *
- * @author Daniele Pantaleone
  */
 int SV_XORShiftRand(void) {
 	int t = (mx ^ (mx << 11)) & RAND_MAX;
@@ -167,8 +193,6 @@ int SV_XORShiftRand(void) {
 
 /**
  * Generates a random number between the given min-max values.
- *
- * @author Daniele Pantaleone
  */
 float SV_XORShiftRandRange(float min, float max) {
 	return min + ((float)SV_XORShiftRand() / (float)RAND_MAX) * (max - min);
@@ -176,8 +200,6 @@ float SV_XORShiftRandRange(float min, float max) {
 
 /**
  * Sets the initial seed for the XORShiftRand function.
- *
- * @author Daniele Pantaleone
  */
 void SV_XORShiftRandSeed(unsigned int seed) {
 	mw = seed;
