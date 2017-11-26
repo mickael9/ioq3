@@ -211,13 +211,13 @@ typedef struct client_s {
 	qboolean		compat;
 #endif
 
+#ifdef USE_AUTH
+	char auth[MAX_NAME_LENGTH];
+#endif
+
 #ifdef USE_SKEETMOD
 	int lastEventSequence;
 	int powerups[MAX_POWERUPS];
-#endif
-
-#if defined(USE_AUTH) && defined(USE_SKEETMOD)
-	char auth[MAX_NAME_LENGTH];
 #endif
 
 } client_t;
