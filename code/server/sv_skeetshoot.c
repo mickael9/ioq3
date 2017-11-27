@@ -31,7 +31,7 @@
 #define STAT_AMOVE                         13
 #define EVT_FIRE_WEAPON                    31
 
-#define DEG_TO_RAD(a)    ((a) * M_PI / 180.0)
+#define DEG_TO_RAD(a)   ((a) * M_PI / 180.0f)
 
 
 static qboolean SV_SkeetExpired(svEntity_t *sEnt, sharedEntity_t *gEnt);
@@ -124,8 +124,8 @@ void SV_SkeetLaunch(svEntity_t *sEnt, sharedEntity_t *gEnt) {
 	pitch = SV_XORShiftRandRange(-(fan / 2), (fan / 2));
 	yaw = SV_XORShiftRandRange(pitch > -M_PI_2 && pitch < M_PI_2 ? SKEET_MIN_Y : -SKEET_MAX_Y, pitch > -M_PI_2 && pitch < M_PI_2 ? SKEET_MAX_Y : -SKEET_MIN_Y);
 	VectorSet(skeetDir, pitch, yaw, 1.0f);
-	VectorRotateZ(skeetDir, DEG_TO_RAD(Com_Clamp(-360, +360, sv_skeetrotate->integer)), skeetDir);
 	VectorNormalize(skeetDir);
+	VectorRotateZ(skeetDir, DEG_TO_RAD(Com_Clamp(-360, +360, sv_skeetrotate->integer)), skeetDir);
 	VectorClear(skeetPos);
 	VectorMA(skeetPos, sv_skeetspeed->integer, skeetDir, skeetPos);
 	VectorCopy(skeetPos, gEnt->s.pos.trDelta);
