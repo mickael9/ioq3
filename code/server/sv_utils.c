@@ -131,38 +131,15 @@ void SV_SendScoreboardSingleMessageToAllClients(client_t *cl, playerState_t *ps)
 /**
  * Broadcast a specific sound to the given client.
  */
-void SV_SendSoundToClient(client_t *cl, const char *name) {
+void SV_SendSoundToClient(client_t *cl, char *name) {
 
-	int i;
 	int bits;
-	int index = -1;
-	int max = MAX_SOUNDS;
-	int start = CS_SOUNDS;
-	char buffer[MAX_STRING_CHARS];
+	int index;
 	playerState_t *ps;
 
-	if (!name || !name[0]) {
-		index = 0;
-	}
-
-	for (i = 1 ; i < max ; i++) {
-		SV_GetConfigstring(start + i, buffer, sizeof(buffer));
-		if (!buffer[0])
-			break;
-		if (!Q_stricmp(buffer, name)) {
-			index = i;
-			break;
-		}
-	}
-
-	if (index == -1) {
-		// if there is no config string for this sound,
-		// create a new one but do not overflow the limits
-		if (i == max) {
-			return;
-		}
-		SV_SetConfigstring(start + i, name);
-		index = i;
+	index = SV_FindConfigstringIndex(name, CS_SOUNDS, MAX_SOUNDS, qtrue);
+	if (!index) {
+		return;
 	}
 
 	ps = SV_GameClientNum(cl - svs.clients);
