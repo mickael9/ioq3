@@ -21,7 +21,8 @@
 
 #define SKEET_CLASSHASH             284875700
 #define SKEET_MAX_OFFSET                  128
-#define SKEET_MAX_TRACE                 18000
+#define SKEET_MAX_TRACE                 22000
+#define SKEET_MAX_TIME                   8000
 #define SKEET_MIN_Y             (M_PI / 3.0f)
 #define SKEET_MAX_Y             (M_PI / 2.0f)
 #define SKEET_MIN_SPAWN_TIME             1000
@@ -33,11 +34,12 @@
 #define DEG_TO_RAD(a)    ((a) * M_PI / 180.0)
 
 
-static int  SV_SkeetHashOffsetFinder(unsigned int base);
-static void SV_SkeetHitReport(client_t *cl, float distance, int points);
-static void SV_SkeetLogHit(client_t *cl, playerState_t *ps, float distance, int points);
-static void SV_SkeetLogMiss(client_t *cl);
-static void SV_SkeetPointsNotify(client_t *cl, int points);
+static qboolean SV_SkeetExpired(svEntity_t *sEnt, sharedEntity_t *gEnt);
+static int      SV_SkeetHashOffsetFinder(unsigned int base);
+static void     SV_SkeetHitReport(client_t *cl, float distance, int points);
+static void     SV_SkeetLogHit(client_t *cl, playerState_t *ps, float distance, int points);
+static void     SV_SkeetLogMiss(client_t *cl);
+static void     SV_SkeetPointsNotify(client_t *cl, int points);
 
 
 typedef struct {
@@ -48,10 +50,11 @@ typedef struct {
 
 
 skeetscore_t skeetscores[] = {
-	{ 1,    0,  5000  },
-	{ 2, 5000,  90000 },
-	{ 4, 9000,  14000 },
-	{ 8, 14000, SKEET_MAX_TRACE },
+	{ 1,     0,  4000  },
+	{ 2,  4000,  6000  },
+	{ 4,  6000,  8000  },
+	{ 6,  8000,  10000 },
+	{ 8, 10000, SKEET_MAX_TRACE },
 };
 
 
@@ -84,7 +87,7 @@ void SV_SkeetThink(void) {
 		}
 
 		if (sEnt->skeetInfo.moving) {
-			if (Distance(sEnt->skeetInfo.origin, gEnt->r.currentOrigin) >= SKEET_MAX_TRACE) {
+			if (SV_SkeetExpired(sEnt, gEnt)) {
 				SV_SkeetRespawn(sEnt, gEnt);
 			}
 		} else {
@@ -522,6 +525,16 @@ static void SV_SkeetPointsNotify(client_t *cl, int points) {
 	if (sv_skeetpointsnotify->integer <= 0)
 		return;
 	SV_SendServerCommand(cl, "cp \"%s+%d\n\"", S_COLOR_GREEN, points);
+}
+
+static qboolean SV_SkeetExpired(svEntity_t *sEnt, sharedEntity_t *gEnt) {
+	if (!sEnt->skeetInfo.moving)
+		return qfalse;
+	if (Distance(sEnt->skeetInfo.origin, gEnt->r.currentOrigin) >= SKEET_MAX_TRACE)
+		return qtrue;
+	if (sEnt->skeetInfo.shootTime > 0 && (sv.time - sEnt->skeetInfo.shootTime) >= SKEET_MAX_TIME)
+		return qtrue;
+	return qfalse;
 }
 
 #endif
