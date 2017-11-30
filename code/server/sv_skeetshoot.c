@@ -21,10 +21,8 @@
 
 #define SKEET_CLASSHASH             284875700
 #define SKEET_MAX_OFFSET                  128
-#define SKEET_MAX_TRACE                 22000
+#define SKEET_MAX_TRACE                 28000
 #define SKEET_MAX_TIME                   8000
-#define SKEET_MIN_Y             (M_PI / 3.0f)
-#define SKEET_MAX_Y             (M_PI / 2.0f)
 #define SKEET_MIN_SPAWN_TIME             1000
 #define SKEET_MAX_SPAWN_TIME             4000
 #define STAT_PMOVE                          8
@@ -103,7 +101,7 @@ void SV_SkeetThink(void) {
 void SV_SkeetLaunch(svEntity_t *sEnt, sharedEntity_t *gEnt) {
 
 	float fan;
-	float pitch, yaw;
+	float angle;
 
 	vec3_t skeetPos = {0,0,0};
 	vec3_t skeetDir = {0,0,0};
@@ -121,9 +119,8 @@ void SV_SkeetLaunch(svEntity_t *sEnt, sharedEntity_t *gEnt) {
 	}
 
 	fan = DEG_TO_RAD(Com_Clamp(0, 360, sv_skeetfansize->integer));
-	pitch = SV_XORShiftRandRange(-(fan / 2), (fan / 2));
-	yaw = SV_XORShiftRandRange(pitch > -M_PI_2 && pitch < M_PI_2 ? SKEET_MIN_Y : -SKEET_MAX_Y, pitch > -M_PI_2 && pitch < M_PI_2 ? SKEET_MAX_Y : -SKEET_MIN_Y);
-	VectorSet(skeetDir, pitch, yaw, 1.0f);
+	angle = SV_XORShiftRandRange(-(fan / 2), (fan / 2));
+	VectorSet(skeetDir, sinf(angle), cosf(angle), 1.0f);
 	VectorNormalize(skeetDir);
 	VectorRotateZ(skeetDir, DEG_TO_RAD(Com_Clamp(-360, +360, sv_skeetrotate->integer)), skeetDir);
 	VectorClear(skeetPos);

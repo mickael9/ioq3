@@ -363,8 +363,8 @@ extern  cvar_t  *sv_skeetpoints;        // how many points for each skeet hit: i
 extern  cvar_t  *sv_skeetpointsnotify;  // notify each point scored to the client who performed the shot
 extern  cvar_t  *sv_skeetprotect;       // protect hit/kill of non-skeet entities (i.e. players)
 extern  cvar_t  *sv_skeetspeed;			// speed of each skeet
-extern  cvar_t  *sv_skeetrotate;		// YAW angle rotation (defaults to 0, range between -360 and +360)
-extern  cvar_t  *sv_skeetfansize;		// size of the shoot fan (defaults to 144, range 0-360)
+extern  cvar_t  *sv_skeetrotate;		// ROLL angle rotation (defaults to 0, range between -360 and +360)
+extern  cvar_t  *sv_skeetfansize;		// spread of the skeet launcher (defaults to 144, range 0-360)
 #endif
 
 //===========================================================
