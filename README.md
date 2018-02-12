@@ -140,6 +140,15 @@ set dedicated 2 // Make the server visible to the internet
 exec server.cfg // Start server with the specified config file
 ```
 
+## Network Protocol
+
+ioquake3 now supports up to two network protocols in parallel: the new protocol (currently 71) and the legacy protocol (68, as Q3A 1.32)
+There are two cvars that let you define the reported protocol versions between clients and servers: 
+
+- `com_protocol` denotes the protocol version for the new hardened protocol.
+- `com_legacyprotocol` If set to 0, then support for the legacy protocol is disabled.
+
+
 
 ## Impoved keyboard handling
 
