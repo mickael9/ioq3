@@ -156,7 +156,7 @@ UNLOCALIZED_RESOURCES_FOLDER_PATH="${CONTENTS_FOLDER_PATH}/Resources"
 EXECUTABLE_FOLDER_PATH="${CONTENTS_FOLDER_PATH}/MacOS"
 
 # loop through the architectures to build string lists for each universal binary
-for ARCH in $SEARCH_ARCHS; do
+for ARCH in ${SEARCH_ARCHS}; do
 	CURRENT_ARCH=${ARCH}
 	BUILT_PRODUCTS_DIR="${OBJROOT}/${TARGET_NAME}-darwin-${CURRENT_ARCH}"
 	IOQ3_CLIENT="${EXECUTABLE_NAME}.${CURRENT_ARCH}"
@@ -283,11 +283,11 @@ function action()
 
 	if [ -x "${HAS_LIPO}" ]; then
 		COMMAND="${HAS_LIPO} -create -o"
-		$HAS_LIPO -create -o "${1}" ${2} # make sure $2 is treated as a list of files
+		${HAS_LIPO} -create -o "${1}" ${2} # make sure $2 is treated as a list of files
 	elif [ -x ${HAS_CP} ]; then
 		COMMAND="${HAS_CP}"
 		SRC="${2// */}" # in case there is a list here, use only the first item
-		$HAS_CP "${SRC}" "${1}"
+		${HAS_CP} "${SRC}" "${1}"
 	else
 		"$0 cannot create an application bundle."
 		exit 1

@@ -182,7 +182,18 @@ typedef enum {
 	CG_CEIL,
 	CG_TESTPRINTINT,
 	CG_TESTPRINTFLOAT,
-	CG_ACOS
+	CG_ACOS,
+
+#ifdef USE_DISCORD
+	CG_DISCORD_INIT = 200,
+	CG_DISCORD_SHUTDOWN,
+	CG_DISCORD_CLEAR_PRESENCE,
+	CG_DISCORD_UPDATE_PRESENCE,
+	CG_DISCORD_UPDATE_CONNECTION,
+	CG_DISCORD_RESPOND,
+	CG_DISCORD_THINK,
+#endif
+
 } cgameImport_t;
 
 
@@ -231,8 +242,17 @@ typedef enum {
 
 	CG_MOUSE_EVENT,
 //	void	(*CG_MouseEvent)( int dx, int dy );
-	CG_EVENT_HANDLING
+	CG_EVENT_HANDLING,
 //	void (*CG_EventHandling)(int type);
+
+#ifdef USE_DISCORD
+	CG_DISCORD_READY = 200,
+	CG_DISCORD_ERRORED,
+	CG_DISCORD_DISCONNECTED,
+	CG_DISCORD_JOIN_GAME,
+	CG_DISCORD_SPECTATE_GAME,
+	CG_DISCORD_JOIN_REQUEST,
+#endif
 } cgameExport_t;
 
 //----------------------------------------------
