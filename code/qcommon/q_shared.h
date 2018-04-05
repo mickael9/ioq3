@@ -26,7 +26,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // q_shared.h -- included first by ALL program modules.
 // A user mod should never modify this file
 
-#define PRODUCT_NAME				"ioQuake3-UrT"
+#define PRODUCT_NAME				"ioQ3-UrT"
 #define BASEGAME					"q3ut4"
 #define CLIENT_WINDOW_TITLE		"UrbanTerror"
 #define CLIENT_WINDOW_MIN_TITLE	"UrbanTerror"
