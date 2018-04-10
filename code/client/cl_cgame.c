@@ -23,6 +23,10 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 #include "client.h"
 
+#ifdef USE_DISCORD
+#include "cl_discord.h"
+#endif
+
 #include "../botlib/botlib.h"
 
 #ifdef USE_MUMBLE
@@ -692,7 +696,28 @@ intptr_t CL_CgameSystemCalls( intptr_t *args ) {
 		return re.GetEntityToken( VMA(1), args[2] );
 	case CG_R_INPVS:
 		return re.inPVS( VMA(1), VMA(2) );
-
+#ifdef USE_DISCORD
+	case CG_DISCORD_INIT:
+		CL_DiscordInit();
+		return 0;
+	case CG_DISCORD_SHUTDOWN:
+		CL_DiscordShutdown();
+		return 0;
+	case CG_DISCORD_THINK:
+		CL_DiscordThink();
+		return 0;
+	case CG_DISCORD_CLEAR_PRESENCE:
+		CL_DiscordClearPresence();
+		return 0;
+	case CG_DISCORD_UPDATE_PRESENCE:
+		CL_DiscordUpdatePresence(VMA(1), VMA(2), args[3], args[4], VMA(5), VMA(6), VMA(7), VMA(8), VMA(9), args[10], args[11], VMA(12), VMA(13), VMA(14), args[15]);
+		return 0;
+	case CG_DISCORD_RESPOND:
+		CL_DiscordRespond(VMA(1), args[2]);
+	case CG_DISCORD_UPDATE_CONNECTION:
+		CL_DiscordUpdateConnection();
+		return 0;
+#endif
 	default:
 	        assert(0);
 		Com_Error( ERR_DROP, "Bad cgame system trap: %ld", (long int) args[0] );

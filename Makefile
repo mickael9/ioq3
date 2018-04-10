@@ -168,6 +168,10 @@ ifndef USE_VOIP
 USE_VOIP=1
 endif
 
+ifndef USE_DISCORD
+USE_DISCORD=1
+endif
+
 ifndef USE_FREETYPE
 USE_FREETYPE=0
 endif
@@ -220,8 +224,7 @@ ifndef USE_AUTH
   USE_AUTH=1
 endif
 
-ifndef USE_ALTGAMMA
-  # Clearskies - X11-based gamma for Linux
+ifndef USE_ALTGAMMA  # Clearskies - X11-based gamma for Linux
   USE_ALTGAMMA=1
 endif
 
@@ -380,6 +383,18 @@ ifneq (,$(findstring "$(PLATFORM)", "linux" "gnu_kfreebsd" "kfreebsd-gnu" "gnu")
     RENDERER_LIBS += -lX11 -lXxf86vm
   endif
 
+  ifeq ($(USE_DISCORD),1)
+    ifeq ($(ARCH),x86_64)
+      CLIENT_LIBS += $(LIBSDIR)/linux64/libdiscord-rpc.so
+      CLIENT_EXTRA_FILES += $(LIBSDIR)/linux64/libdiscord-rpc.so
+    else ifeq ($(ARCH),x86)
+      CLIENT_LIBS += $(LIBSDIR)/linux32/libdiscord-rpc.so
+      CLIENT_EXTRA_FILES += $(LIBSDIR)/linux32/libdiscord-rpc.so
+    else
+      USE_DISCORD=0
+    endif
+  endif
+
   ifeq ($(ARCH),x86)
     # linux32 make ...
     BASE_CFLAGS += -m32
@@ -498,6 +513,11 @@ ifeq ($(PLATFORM),darwin)
   SHLIBLDFLAGS=-dynamiclib $(LDFLAGS) -Wl,-U,_com_altivec
 
   NOTSHLIBCFLAGS=-mdynamic-no-pic
+
+  ifeq ($(USE_DISCORD),1)
+	CLIENT_LIBS += $(LIBSDIR)/macosx/libdiscord-rpc.dylib
+	CLIENT_EXTRA_FILES += $(LIBSDIR)/macosx/libdiscord-rpc.dylib
+  endif
 
 else # ifeq darwin
 
@@ -645,6 +665,16 @@ ifdef MINGW
     CLIENT_LIBS += $(SDL_LIBS)
     RENDERER_LIBS += $(SDL_LIBS)
     SDLDLL=SDL2.dll
+  endif
+
+  ifeq ($(USE_DISCORD),1)
+  	ifeq ($(ARCH),x86_64)
+      	CLIENT_LIBS += $(LIBSDIR)/win64/discord-rpc.dll
+      	CLIENT_EXTRA_FILES += $(LIBSDIR)/win64/discord-rpc.dll
+    else
+      	CLIENT_LIBS += $(LIBSDIR)/win32/discord-rpc.dll
+      	CLIENT_EXTRA_FILES += $(LIBSDIR)/win32/discord-rpc.dll
+    endif
   endif
 
 else # ifdef MINGW
@@ -1029,6 +1059,10 @@ ifeq ($(USE_MUMBLE),1)
   CLIENT_CFLAGS += -DUSE_MUMBLE
 endif
 
+ifeq ($(USE_DISCORD),1)
+  CLIENT_CFLAGS += -DUSE_DISCORD
+endif
+
 ifeq ($(USE_INTERNAL_ZLIB),1)
   ZLIB_CFLAGS = -DNO_GZIP -I$(ZDIR)
 else
@@ -1327,6 +1361,7 @@ Q3OBJ = \
   $(B)/client/cl_cgame.o \
   $(B)/client/cl_cin.o \
   $(B)/client/cl_console.o \
+  $(B)/client/cl_discord.o \
   $(B)/client/cl_input.o \
   $(B)/client/cl_keys.o \
   $(B)/client/cl_main.o \
