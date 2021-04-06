@@ -939,7 +939,8 @@ Updates the cl->ping variables
 static void SV_CalcPings( void ) {
 	int			i, j;
 	client_t	*cl;
-	int			total, count;
+	int			count;
+	float		total;
 	int			delta;
 	playerState_t	*ps;
 
@@ -966,12 +967,12 @@ static void SV_CalcPings( void ) {
 			}
 			delta = cl->frames[j].messageAcked - cl->frames[j].messageSent;
 			count++;
-			total += delta;
+			total += 1.0/(delta+0.1);  // average frequency (avoiding 0 division)
 		}
 		if (!count) {
 			cl->ping = 999;
 		} else {
-			cl->ping = total/count;
+			cl->ping = (float)count/total;  // interval from average frequency
 			if ( cl->ping > 999 ) {
 				cl->ping = 999;
 			}
